@@ -1,12 +1,16 @@
+#include <stdlib.h>
+#include <string.h>
+
 #define _POSIX_SOURCE
 #include <errno.h>
 
-#include "sjistab.c"
+#include "iconv.h"
 
 /* iconv.c - iconv-compatible SJIS→UTF-8 converter */
+/* doesn't handle incomplete multibyte sequences in the input buffer */
 
-#define UTFmax 4
 typedef unsigned long Rune;
+#include "sjistab.c"
 
 enum {
 	EncSJIS,
@@ -15,23 +19,18 @@ enum {
 	EncInvalid = -1,
 };
 
-char **enctab = {
+char *enctab[4][4] = {
 	[EncSJIS]  = {"SHIFT_JIS", "SJIS", "SHIFT-JIS", NULL},
 	[EncCP932] = {"CP932", "WINDOWS-31J", NULL},
 	[EncUTF8]  = {"UTF-8", "UTF8", NULL},
 	NULL,
 };
 
-typedef struct {
-	int n, i;
-	char *buf;
-} State;
-
 int
 encget(const char *name)
 {
-	for(int i = 0; i enctab[i] != NULL; i++)
-		for(j = 0; enctab[i][j] != NULL; j++)
+	for(int i = 0; enctab[i] != NULL; i++)
+		for(int j = 0; enctab[i][j] != NULL; j++)
 			if(strcmp(enctab[i][j], name) == 0)  /* TODO: lowercase names? */
 				return i;
 
@@ -39,12 +38,13 @@ encget(const char *name)
 }
 
 static int
-sjistorune(Rune *r, char *s)
+sjistorune(Rune *r, unsigned char *s)
 {
 	Rune buf;
 	int ret = 0;
 
-	if(*s >= 0x81 && *s <= 0x9f && *s >=0xe0 && *s <=0xef) {
+	/* printf("sjistorune: *s 0x%x\n", *s); */
+	if((*s >= 0x81 && *s <= 0x9f) || (*s >= 0xe0 && *s <= 0xef)) {
 		buf = *(s++)<<8;
 		buf |= *s;
 		ret = 2;
@@ -63,23 +63,23 @@ sjistorune(Rune *r, char *s)
 static int
 runetochar(char *s, Rune *r)
 {
-	if(*r == *r&0x7f) {
+	if(*r == (*r&0x7f)) {
 		*s = *r&0x7f;
 		return 1;
-	} else if(*r == *r&0x7ff) {
+	} else if(*r == (*r&0x7ff)) {
 		*(s++) = 0300 | ((*r>>6)&0277);
-		*s = 0200 | (*r&0177);
+		*s = 0200 | (*r&077);
 		return 2;
-	} else if(*r == *r&0xfff) {
+	} else if(*r == (*r&0xffff)) {
 		*(s++) = 0340 | ((*r>>12)&0337);
-		*(s++) = 0200 | ((*r>>6)&0177);
-		*s = 0200 | (*r&0177);
+		*(s++) = 0200 | ((*r>>6)&077);
+		*s = 0200 | (*r&077);
 		return 3;
-	} else if(*r == *r&0x10ffff) {
+	} else if(*r == (*r&0x10ffff)) {
 		*(s++) = 0360 | ((*r>>18)&0357);
-		*(s++) = 0200 | ((*r>>12)&0177);
-		*(s++) = 0200 | ((*r>>6)&0177);
-		*s = 0200 | (*r&0177);
+		*(s++) = 0200 | ((*r>>12)&077);
+		*(s++) = 0200 | ((*r>>6)&077);
+		*s = 0200 | (*r&077);
 		return 4;
 	} else {
 		return -1;
@@ -94,23 +94,23 @@ iconv(iconv_t cd, char **restrict inbuf, size_t *restrict inleft, char **restric
 
 	if(s->n) {
 		if(*outleft >= s->n) {
-			memcpy(*outbuf, s->buf+i, s->n);
+			memcpy(*outbuf, s->buf+s->i, s->n);
 			*outbuf += s->n;
 			*outleft -= s->n;
 			s->n = 0;
 		} else {
-			memcpy(*outbuf, s->buf+i, *outleft);
+			memcpy(*outbuf, s->buf+s->i, *outleft);
 			*outbuf += *outleft;
 			*outleft -= *outleft;
 			s->i = *outleft;
-			s->n = n-*outleft;
+			s->n = s->n-*outleft;
 			errno = E2BIG;
 			return (size_t)-1;
 		}
 	}
 
 	while(*inleft) {
-		int n = sjistorune(&r, *inbuf);
+		int n = sjistorune(&r, (unsigned char *)*inbuf);
 		*inbuf += n;
 		*inleft -= n;
 		n = runetochar(s->buf, &r);
@@ -136,18 +136,20 @@ iconv_t
 iconv_open(const char *to, const char *from)
 {
 	int tocode = encget(to), fromcode = encget(from);
-	char *buf;
+	iconv_t cd;
 
 	if(tocode != EncUTF8 || fromcode != EncSJIS) {
 		errno = EINVAL;
 		return (iconv_t)-1;
 	}
 
-	buf = malloc(UTFmax);
-	if(buf == NULL)
+	cd = malloc(sizeof *cd);
+	if(cd == NULL)
 		return (iconv_t)-1;
+	cd->n = 0;
+	cd->i = 0;
 
-	return (iconv_t)buf;
+	return cd;
 }
 
 int

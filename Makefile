@@ -5,7 +5,7 @@ OFILES = iconv.o
 
 all: $(OFILES)
 src/iconv.c: src/sjistab.c
-src/sjistab.c: res/SHIFTJIS.TXT
+src/sjistab.c: res/SHIFTJIS.TXT res/sjistabgen.awk
 	awk -f res/sjistabgen.awk $< > $@
 
 clean:
