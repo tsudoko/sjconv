@@ -92,41 +92,19 @@ iconv(iconv_t cd, char **restrict inbuf, size_t *restrict inleft, char **restric
 	State *s = (State *)cd;
 	Rune r;
 
-	if(s->n) {
-		if(*outleft >= s->n) {
-			memcpy(*outbuf, s->buf+s->i, s->n);
-			*outbuf += s->n;
-			*outleft -= s->n;
-			s->n = 0;
-		} else {
-			memcpy(*outbuf, s->buf+s->i, *outleft);
-			*outbuf += *outleft;
-			*outleft -= *outleft;
-			s->i = *outleft;
-			s->n = s->n-*outleft;
-			errno = E2BIG;
-			return (size_t)-1;
-		}
-	}
-
 	while(*inleft) {
 		int n = sjistorune(&r, (unsigned char *)*inbuf);
-		*inbuf += n;
-		*inleft -= n;
-		n = runetochar(s->buf, &r);
-		if(*outleft >= n) {
-			memcpy(*outbuf, s->buf, n);
-			*outbuf += n;
-			*outleft -= n;
-		} else {
-			memcpy(*outbuf, s->buf, *outleft);
-			*outbuf += *outleft;
-			*outleft -= *outleft;
-			s->i = *outleft;
-			s->n = n-*outleft;
+		if(*outleft < n) {
 			errno = E2BIG;
 			return (size_t)-1;
 		}
+		*inbuf += n;
+		*inleft -= n;
+
+		n = runetochar(s->buf, &r);
+		memcpy(*outbuf, s->buf, n);
+		*outbuf += n;
+		*outleft -= n;
 	}
 
 	return (size_t)0;
@@ -146,8 +124,6 @@ iconv_open(const char *to, const char *from)
 	cd = malloc(sizeof *cd);
 	if(cd == NULL)
 		return (iconv_t)-1;
-	cd->n = 0;
-	cd->i = 0;
 
 	return cd;
 }

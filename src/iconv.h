@@ -1,7 +1,6 @@
 #define UTFmax 4
 
 typedef struct {
-	int n, i;
 	char buf[UTFmax];
 } State;
 
