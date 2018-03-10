@@ -7,7 +7,6 @@
 #include "iconv.h"
 
 /* iconv.c - iconv-compatible SJIS→UTF-8 converter */
-/* doesn't handle incomplete multibyte sequences in the input buffer */
 
 typedef unsigned long Rune;
 #include "sjistab.c"
@@ -86,6 +85,15 @@ runetochar(char *s, Rune *r)
 	}
 }
 
+static int
+fullsjis(unsigned char *s, int n)
+{
+	if((*s >= 0x81 && *s <= 0x9f) || (*s >= 0xe0 && *s <= 0xef))
+		return n >= 2;
+	else
+		return n >= 1;
+}
+
 size_t
 iconv(iconv_t cd, char **restrict inbuf, size_t *restrict inleft, char **restrict outbuf, size_t *restrict outleft)
 {
@@ -93,18 +101,22 @@ iconv(iconv_t cd, char **restrict inbuf, size_t *restrict inleft, char **restric
 	Rune r;
 
 	while(*inleft) {
-		int n = sjistorune(&r, (unsigned char *)*inbuf);
-		if(*outleft < n) {
+		if(!fullsjis((unsigned char *)*inbuf, *inleft)) {
+			errno = EINVAL;
+			return (size_t)-1;
+		}
+		int slen = sjistorune(&r, (unsigned char *)*inbuf);
+		int ulen = runetochar(s->buf, &r);
+		if(*outleft < ulen) {
 			errno = E2BIG;
 			return (size_t)-1;
 		}
-		*inbuf += n;
-		*inleft -= n;
 
-		n = runetochar(s->buf, &r);
-		memcpy(*outbuf, s->buf, n);
-		*outbuf += n;
-		*outleft -= n;
+		*inbuf += slen;
+		*inleft -= slen;
+		memcpy(*outbuf, s->buf, ulen);
+		*outbuf += ulen;
+		*outleft -= ulen;
 	}
 
 	return (size_t)0;
