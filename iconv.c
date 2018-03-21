@@ -9,7 +9,7 @@
 /* iconv.c - iconv-compatible SJIS→UTF-8 converter */
 
 typedef unsigned long Rune;
-#include "sjistab.c"
+#include "_sjistab.c"
 
 enum {
 	EncSJIS,
@@ -42,7 +42,6 @@ sjistorune(Rune *r, unsigned char *s)
 	Rune buf;
 	int ret = 0;
 
-	/* printf("sjistorune: *s 0x%x\n", *s); */
 	if((*s >= 0x81 && *s <= 0x9f) || (*s >= 0xe0 && *s <= 0xef)) {
 		buf = *(s++)<<8;
 		buf |= *s;

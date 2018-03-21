@@ -1,4 +1,3 @@
-[a012568kqv].out
+*.a
 *.[o012568kqv]
-
-/src/sjistab.c
+_*.c

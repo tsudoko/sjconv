@@ -3,8 +3,10 @@
 #TARG = iconv.a
 OFILES = iconv.o
 
-src/sjistab.c: gen/sjistab.awk res/SHIFTJIS.TXT
-	awk -f gen/sjistab.awk res/SHIFTJIS.TXT > $@
+all: $(OFILES)
+iconv.c: _sjistab.c
+_sjistab.c: sjistab.awk SHIFTJIS.TXT
+	awk -f sjistab.awk SHIFTJIS.TXT > $@
 
 clean:
-	rm -f $(TARG) $(OFILES) src/sjistab.c
+	rm -f $(TARG) $(OFILES) _sjistab.c
