@@ -18,9 +18,9 @@ enum {
 	EncInvalid = -1,
 };
 
-char *enctab[4][4] = {
+char *enctab[4][5] = {
 	[EncSJIS]  = {"SHIFT_JIS", "SJIS", "SHIFT-JIS", NULL},
-	[EncCP932] = {"CP932", "WINDOWS-31J", NULL},
+	[EncCP932] = {"CP932", "WINDOWS-31J", "IBM-943", "IBM943", NULL},
 	[EncUTF8]  = {"UTF-8", "UTF8", NULL},
 	NULL,
 };
