@@ -6,6 +6,8 @@
 
 #include "iconv.h"
 
+#define nelem(x) (sizeof(x)/sizeof((x)[0]))
+
 /* iconv.c - iconv-compatible SJIS→UTF-8 converter */
 
 typedef unsigned long Rune;
@@ -28,7 +30,7 @@ char *enctab[4][5] = {
 int
 encget(const char *name)
 {
-	for(int i = 0; enctab[i] != NULL; i++)
+	for(int i = 0; i < nelem(enctab); i++)
 		for(int j = 0; enctab[i][j] != NULL; j++)
 			if(strcmp(enctab[i][j], name) == 0)  /* TODO: lowercase names? */
 				return i;
