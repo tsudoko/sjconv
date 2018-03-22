@@ -8,23 +8,20 @@
 
 #define nelem(x) (sizeof(x)/sizeof((x)[0]))
 
-/* iconv.c - iconv-compatible SJIS→UTF-8 converter */
+/* sjconv - iconv-compatible Windows-31J (cp932) → UTF-8 converter */
 
 typedef unsigned long Rune;
-#include "_sjistab.c"
+#include "_cp932tab.c"
 
 enum {
-	EncSJIS,
 	EncCP932,
 	EncUTF8,
 	EncInvalid = -1,
 };
 
-char *enctab[4][5] = {
-	[EncSJIS]  = {"SHIFT_JIS", "SJIS", "SHIFT-JIS", NULL},
+char *enctab[][5] = {
 	[EncCP932] = {"CP932", "WINDOWS-31J", "IBM-943", "IBM943", NULL},
 	[EncUTF8]  = {"UTF-8", "UTF8", NULL},
-	NULL,
 };
 
 int
@@ -39,24 +36,23 @@ encget(const char *name)
 }
 
 static int
-sjistorune(Rune *r, unsigned char *s)
+cp932torune(Rune *r, unsigned char *s)
 {
 	Rune buf;
 	int ret = 0;
 
-	if((*s >= 0x81 && *s <= 0x9f) || (*s >= 0xe0 && *s <= 0xef)) {
+	if((*s >= 0x81 && *s <= 0x9f) ||
+	   (*s >= 0xe0 && *s <= 0xef) ||
+	   (*s >=0xfa && *s <= 0xfc)) /* IBM extensions, not present in standard SJIS */ {
 		buf = *(s++)<<8;
 		buf |= *s;
 		ret = 2;
-	} else if(*s < 0x20 || *s == 0x7f) { /* non-printable ascii not present in SHIFTJIS.TXT */
-		*r = *s;
-		return 1;
 	} else {
 		buf = *s;
 		ret = 1;
 	}
 
-	*r = sjistab[buf];
+	*r = cp932tab[buf];
 	return ret;
 }
 
@@ -86,13 +82,22 @@ runetochar(char *s, Rune *r)
 	}
 }
 
-static int
+inline static int
 fullsjis(unsigned char *s, int n)
 {
 	if((*s >= 0x81 && *s <= 0x9f) || (*s >= 0xe0 && *s <= 0xef))
 		return n >= 2;
 	else
 		return n >= 1;
+}
+
+inline static int
+fullcp932(unsigned char *s, int n)
+{
+	if(*s >= 0xfa && *s <= 0xfc) /* IBM extensions */
+		return n >= 2;
+	else
+		return fullsjis(s, n);
 }
 
 size_t
@@ -102,11 +107,11 @@ iconv(iconv_t cd, char **restrict inbuf, size_t *restrict inleft, char **restric
 	Rune r;
 
 	while(*inleft) {
-		if(!fullsjis((unsigned char *)*inbuf, *inleft)) {
+		if(!fullcp932((unsigned char *)*inbuf, *inleft)) {
 			errno = EINVAL;
 			return (size_t)-1;
 		}
-		int slen = sjistorune(&r, (unsigned char *)*inbuf);
+		int slen = cp932torune(&r, (unsigned char *)*inbuf);
 		int ulen = runetochar(s->buf, &r);
 		if(*outleft < ulen) {
 			errno = E2BIG;
@@ -129,7 +134,7 @@ iconv_open(const char *to, const char *from)
 	int tocode = encget(to), fromcode = encget(from);
 	iconv_t cd;
 
-	if(tocode != EncUTF8 || fromcode != EncSJIS) {
+	if(tocode != EncUTF8 || fromcode != EncCP932) {
 		errno = EINVAL;
 		return (iconv_t)-1;
 	}
