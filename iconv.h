@@ -1,10 +1,7 @@
 #define UTFmax 4
 
-typedef struct {
-	char buf[UTFmax];
-} State;
-
-typedef State * iconv_t;
+struct sjconv_state;
+typedef struct sjconv_state *iconv_t;
 
 size_t  iconv(iconv_t, char **restrict, size_t *restrict, char **restrict, size_t *restrict);
 int     iconv_close(iconv_t);

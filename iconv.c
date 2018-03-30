@@ -13,6 +13,10 @@
 typedef unsigned long Rune;
 #include "_cp932tab.c"
 
+struct sjconv_state {
+	char buf[UTFmax];
+};
+
 enum {
 	EncCP932,
 	EncUTF8,
@@ -101,9 +105,8 @@ fullcp932(unsigned char *s, int n)
 }
 
 size_t
-iconv(iconv_t cd, char **restrict inbuf, size_t *restrict inleft, char **restrict outbuf, size_t *restrict outleft)
+iconv(iconv_t s, char **restrict inbuf, size_t *restrict inleft, char **restrict outbuf, size_t *restrict outleft)
 {
-	State *s = (State *)cd;
 	Rune r;
 
 	while(*inleft) {
