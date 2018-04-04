@@ -1,6 +1,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Replace the following line with "#include <ctype.h>" if your
+ * base character set isn't ASCII or a superset thereof; be aware
+ * though that tolower() can do basically whatever it wants if
+ * your OS supports locales and your locale isn't set to C
+ */
+#define tolower clower
+
 #define _POSIX_SOURCE
 #include <errno.h>
 
@@ -37,11 +44,25 @@ static struct {
 	{"UTF8",        EncUTF8},
 };
 
+inline static char
+clower(unsigned char c)
+{
+	return c < 0x80 && c >= 'A' && c <= 'Z' ? c + 0x20 : c;
+}
+
+static int
+strcaseeq(const char *s1, const char *s2)
+{
+	int r;
+	while(*s1 && *s2 && (r = tolower(*s1++) == tolower(*s2++)));
+	return r;
+};
+
 static int
 encget(const char *name)
 {
 	for(int i = 0; i < nelem(enctab); i++)
-		if(strcmp(enctab[i].name, name == 0) /* TODO: lowercase names? */
+		if(strcaseeq(enctab[i].name, name))
 			return enctab[i].enc;
 
 	return EncInvalid;
