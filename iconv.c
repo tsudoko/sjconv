@@ -7,6 +7,7 @@
 #include "iconv.h"
 
 #define nelem(x) (sizeof(x)/sizeof((x)[0]))
+#define UTFmax 4
 
 /* sjconv - iconv-compatible Windows-31J (cp932) → UTF-8 converter */
 
@@ -36,7 +37,7 @@ static struct {
 	{"UTF8",        EncUTF8},
 };
 
-int
+static int
 encget(const char *name)
 {
 	for(int i = 0; i < nelem(enctab); i++)

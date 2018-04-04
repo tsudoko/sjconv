@@ -1,5 +1,3 @@
-#define UTFmax 4
-
 struct sjconv_state;
 typedef struct sjconv_state *iconv_t;
 
