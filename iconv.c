@@ -29,6 +29,9 @@ static struct {
 } enctab[] = {
 	{"CP932",       EncCP932},
 	{"WINDOWS-31J", EncCP932},
+	{"MS932",       EncCP932},
+	{"SJIS-WIN",    EncCP932},
+	{"SJIS-OPEN",   EncCP932},
 	{"UTF-8",       EncUTF8},
 	{"UTF8",        EncUTF8},
 };
