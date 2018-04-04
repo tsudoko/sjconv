@@ -23,18 +23,24 @@ enum {
 	EncInvalid = -1,
 };
 
-char *enctab[][5] = {
-	[EncCP932] = {"CP932", "WINDOWS-31J", "IBM-943", "IBM943", NULL},
-	[EncUTF8]  = {"UTF-8", "UTF8", NULL},
+static struct {
+	const char *name;
+	int enc;
+} enctab[] = {
+	{"CP932",       EncCP932},
+	{"WINDOWS-31J", EncCP932},
+	{"IBM-943",     EncCP932},
+	{"IBM943",      EncCP932},
+	{"UTF-8",       EncUTF8},
+	{"UTF8",        EncUTF8},
 };
 
 int
 encget(const char *name)
 {
 	for(int i = 0; i < nelem(enctab); i++)
-		for(int j = 0; enctab[i][j] != NULL; j++)
-			if(strcmp(enctab[i][j], name) == 0)  /* TODO: lowercase names? */
-				return i;
+		if(strcmp(enctab[i].name, name == 0) /* TODO: lowercase names? */
+			return enctab[i].enc;
 
 	return EncInvalid;
 }
