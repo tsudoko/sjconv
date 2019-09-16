@@ -12,5 +12,6 @@ BEGIN {
 }
 
 END {
+	print "	[0xFCFF] = 0,"
 	print "};"
 }
